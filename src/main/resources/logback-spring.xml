@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <jmxConfigurator/>
+
+    <springProperty scope="context" name="rabbitmqHost" source="spring.rabbitmq.host"/>
+    <springProperty scope="context" name="rabbitmqPort" source="spring.rabbitmq.port"/>
+    <springProperty scope="context" name="rabbitmqVirtualHost" source="spring.rabbitmq.virtual-host"/>
+    <springProperty scope="context" name="rabbitmqUsername" source="spring.rabbitmq.username"/>
+    <springProperty scope="context" name="rabbitmqPassword" source="spring.rabbitmq.password"/>
+    <!--<property resource="application.yml" />-->
+
+    <property name="FILE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <!--<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger Line:%-3L - %msg%n</pattern>
+            <charset>UTF-8</charset>
+            &lt;!&ndash;<charset>GBK</charset>&ndash;&gt;
+        </encoder>
+    </appender>-->
+
+    <appender name="TIME_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <file>/data/logs/chinadmp.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/data/logs/chinadmp.log.%d{yyyy-MM-dd}</FileNamePattern>
+            <!--日志文件保留天数-->
+            <MaxHistory>30</MaxHistory>
+
+        </rollingPolicy>
+    </appender>
+
+    <appender name="METATHESIS_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <file>/data/logs/chinadmp_metathesis.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/data/logs/chinadmp_metathesis.log.%d{yyyy-MM-dd HH:mm:ss}</FileNamePattern>
+            <!--日志文件保留天数-->
+            <MaxHistory>360</MaxHistory>
+        </rollingPolicy>
+
+    </appender>
+
+    <appender name="amqp"
+              class="org.springframework.amqp.rabbit.logback.AmqpAppender">
+        <host>${rabbitmqHost}</host>
+        <port>${rabbitmqPort}</port>
+        <virtualHost>${rabbitmqVirtualHost}</virtualHost>
+        <username>${rabbitmqUsername}</username>
+        <password>${rabbitmqPassword}</password>
+        <exchangeType>fanout</exchangeType>
+        <exchangeName>dmpChinadep.log</exchangeName>
+        <applicationId>dmpChinadep</applicationId>
+        <routingKeyPattern>dmpChinadep</routingKeyPattern>
+        <contentType>text/plain</contentType>
+        <maxSenderRetries>2</maxSenderRetries>
+        <charset>UTF-8</charset>
+        <layout>
+            <pattern>{"time":"%date{yyyy-MM-dd HH:mm:ss.SSS}","thread":"%thread","level":"%level","class":"%logger{36}","message":%message}</pattern>
+        </layout>
+        <generateId>true</generateId>
+        <durable>false</durable>
+        <declareExchange>true</declareExchange>
+    </appender>
+
+    <logger name="com.uuzu.chinadep.aspect" level="INFO">
+        <appender-ref ref="amqp"/>
+    </logger>
+
+    <logger name="com.uuzu.chinadep.web" level="ERROR">
+        <appender-ref ref="TIME_FILE" />
+    </logger>
+
+    <logger name="com.uuzu.chinadep.web.DmpRelatedIdForTagController" level="INFO">
+        <appender-ref ref="METATHESIS_FILE" />
+    </logger>
+
+    <root level="INFO">
+        <!--<appender-ref ref="amqp"/>-->
+        <appender-ref ref="TIME_FILE" />
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: dmpchinadep
+    index: ${random.long}
+  output:
+    ansi:
+      enabled: always
+
+  #配置文件集中管理
+  cloud:
+    config:
+      profile: @profiles.active@
+#      label: v1.1
+      discovery:
+        enabled: true
+        service-id: server-config #配置中心在服务中心注册的serviceId
+
+  http:
+    multipart:
+      max-file-size: 15360MB
+      max-request-size: 15360MB
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://server-center:8761/eureka/
+  instance:
+    preferIpAddress: true
+ribbon:
+  eureka:
+    enabled: true
+
+
+management:
+  security:
+    enabled: false
+
+
+server:
+  undertow:
+    worker-threads: 20
+    io-threads: 4
+    buffer-size: 1024
+    direct-buffers: true
+
+
+info:
+  version: V3.0.1
+
+logging:
+  file: /data/logs/dmp-chinadep/dmpchinadep.log

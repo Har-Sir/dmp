@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>任务管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-default/index.css">
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="http://cdn.bootcss.com/vue-resource/1.3.4/vue-resource.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="http://momentjs.com/downloads/moment.min.js"></script>
+
+    <style>
+        #top {
+            background: #FF8C00;
+            padding: 5px;
+            overflow: hidden
+        }
+    </style>
+
+</head>
+<body>
+<div id="test">
+    <div id="top">
+        <el-button type="text" @click="search" style="color:white">刷新任务列表</el-button>
+        <el-button type="text" @click="handleadd" style="color:white">添加</el-button>
+        </span>
+    </div>
+
+    <br/>
+
+    <div style="margin-top:15px">
+
+        <el-table
+                ref="testTable"
+                :data="tableData"
+                style="width:100%"
+                border>
+
+            <el-table-column
+                    prop="job_GROUP"
+                    label="项目组"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="job_NAME"
+                    label="任务名称"
+                    sortable
+                    show-overflow-tooltip>
+            </el-table-column>
+
+            <!--<el-table-column
+                    prop="job_CLASS_NAME"
+                    label="任务类名"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="trigger_NAME"
+                    label="触发器名"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="trigger_GROUP"
+                    label="触发器组"
+                    sortable>
+            </el-table-column>-->
+
+            <el-table-column
+                    prop="cron_EXPRESSION"
+                    label="表达式"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="string_JOB_DATA"
+                    label="运行参数"
+                    min-width="200"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="time_ZONE_ID"
+                    label="时区"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="requests_RECOVERY"
+                    label="故障转移"
+                    sortable>
+                <template scope="scope">
+                    <span v-if="scope.row.requests_RECOVERY == 1" style="color: #13ce66">开启</span>
+                    <span v-if="scope.row.requests_RECOVERY == 0" style="color: #ff4949">关闭</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column
+                    prop="is_DURABLE"
+                    label="持久化"
+                    sortable>
+                <template scope="scope">
+                    <span v-if="scope.row.is_DURABLE == 1" style="color: #13ce66">开启</span>
+                    <span v-if="scope.row.is_DURABLE == 0" style="color: #ff4949">关闭</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column
+                    prop="description"
+                    label="任务描述"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="prev_FIRE_TIME"
+                    label="上次触发时间"
+                    :formatter="dateFormat"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    prop="next_FIRE_TIME"
+                    label="下次触发时间"
+                    :formatter="dateFormat"
+                    sortable>
+            </el-table-column>
+
+            <el-table-column
+                    label="任务状态"
+                    sortable>
+                <template scope="scope">
+                    <span v-if="scope.row.trigger_STATE == 1" style="color: #f9c855">等待</span>
+                    <span v-if="scope.row.trigger_STATE == 2" style="color: #f9c855">暂停</span>
+                    <span v-if="scope.row.trigger_STATE == 3" style="color: #13ce66">正在执行中...</span>
+                    <span v-if="scope.row.trigger_STATE == 4" style="color: #ff4949">阻塞</span>
+                    <span v-if="scope.row.trigger_STATE == 5" style="color: #ff4949">错误</span>
+                    <span v-if="scope.row.trigger_STATE == 6" style="color: #ff4949">未知</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column label="操作" width="300">
+                <template scope="scope">
+                    <el-button
+                            size="small"
+                            type="warning"
+                            @click="handlePause(scope.$index, scope.row)">暂停
+                    </el-button>
+
+                    <el-button
+                            size="small"
+                            type="info"
+                            @click="handleResume(scope.$index, scope.row)">恢复
+                    </el-button>
+
+                    <el-button
+                            size="small"
+                            type="danger"
+                            @click="handleDelete(scope.$index, scope.row)">删除
+                    </el-button>
+
+                    <el-button
+                            size="small"
+                            type="success"
+                            @click="handleUpdate(scope.$index, scope.row)">修改
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <div align="center">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="currentPage"
+                    :page-sizes="[10, 20, 30, 40]"
+                    :page-size="pagesize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="totalCount">
+            </el-pagination>
+        </div>
+    </div>
+
+    <el-dialog title="添加任务" v-model="dialogFormVisible">
+        <el-form :model="form">
+            <el-form-item label="任务名称" label-width="120px" style="width:35%">
+                <el-input v-model="form.jobName" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务分组" label-width="120px" style="width:35%">
+                <!--<el-input v-model="form.jobGroup" auto-complete="off"></el-input>-->
+                <el-select v-model="form.jobGroup" placeholder="请选择">
+                    <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value">
+                    </el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="表达式" label-width="106px" style="width:35%">
+                <el-input v-model="form.cronExpression" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="是否开启故障转移" label-width="176px" style="width:35%">
+                <el-radio class="radio" label= 1 v-model="form.requestRecovery">是</el-radio>
+                <el-radio class="radio" label= 0 v-model="form.requestRecovery">否</el-radio>
+            </el-form-item>
+            <el-form-item label="是否持久化" label-width="135px" style="width:35%">
+                <el-radio class="radio" label=1 v-model="form.storeDurably">是</el-radio>
+                <el-radio class="radio" label=0 v-model="form.storeDurably">否</el-radio>
+            </el-form-item>
+            <el-form-item label="任务描述" label-width="120px" style="width:35%">
+                <el-input v-model="form.description" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务运行参数(可选)" label-width="185px" style="width:35%">
+                <el-input v-model="form.jobData" auto-complete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="add">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <el-dialog title="修改任务" v-model="updateFormVisible">
+        <el-form :model="updateform">
+            <el-form-item label="表达式" label-width="120px" style="width:35%">
+                <el-input v-model="updateform.cronExpression" auto-complete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="updateFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="update">确 定</el-button>
+        </div>
+    </el-dialog>
+
+</div>
+
+<footer align="center">
+    <p>&copy; Mob-task 任务管理</p>
+</footer>
+
+<script>
+    var vue = new Vue({
+        el: "#test",
+        data: {
+            //表格当前页数据
+            tableData: [],
+            //请求的URL
+            url: 'job/queryjob',
+            //默认每页数据量
+            pagesize: 10,
+            //当前页码
+            currentPage: 1,
+            //查询的页码
+            start: 1,
+            //默认数据总数
+            totalCount: 1000,
+
+            //添加对话框默认可见性
+            dialogFormVisible: false,
+            //修改对话框默认可见性
+            updateFormVisible: false,
+
+            //提交的表单
+            form: {
+                jobName: '',
+                jobGroup: '',
+                cronExpression: '',
+                requestRecovery:'',
+                storeDurably:'',
+                description:'',
+                jobData:''
+
+            },
+
+            updateform: {
+                jobName: '',
+                jobGroup: '',
+                cronExpression: '',
+                requestRecovery:'',
+                storeDurably:'',
+                description:'',
+                jobData:''
+            },
+
+            options: [{
+                value: 'mob-task',
+                label: 'mob-task'
+            }, {
+                value: 'mob-eye',
+                label: 'mob-eye'
+            }, {
+                value: 'mob-user',
+                label: 'mob-user'
+            }, {
+                value: 'dmp-wisemedia',
+                label: 'dmp-wisemedia'
+            }, {
+                value: 'dmp-chinadep',
+                label: 'dmp-chinadep'
+            }],
+            value: ''
+        },
+        methods: {
+
+            //时间格式化
+            dateFormat:function(row, column) {
+                var date = row[column.property];
+                if (date == undefined) {
+                    return "";
+                }
+                return moment(date).format("YYYY-MM-DD HH:mm:ss");
+            },
+
+
+            //从服务器读取数据
+            loadData: function (pageNum, pageSize) {
+                this.$http.get('/job/queryjob?' + 'pageNum=' + pageNum + '&pageSize=' + pageSize).then(function (res) {
+                    //console.log(res)
+                    this.tableData = res.body.JobAndTrigger.list;
+                    this.totalCount = res.body.number;
+                }, function () {
+                    console.log('failed');
+                });
+            },
+
+            //单行删除
+            handleDelete: function (index, row) {
+                var url = chooseProject(row.job_GROUP);
+                this.$http.post(url+'/job/deletejob', {
+                    "jobClassName": row.job_NAME,
+                    "jobGroupName": row.job_GROUP
+                }, {emulateJSON: true}).then(function (res) {
+                    console.log(res.data);
+                    this.loadData(this.currentPage, this.pagesize);
+                    this.$notify({
+                        title: res.data.statusText,
+                        message: res.data.status,
+                        type: 'success' // warning  info error
+                    });
+                }, function () {
+                    console.log('failed');
+                    this.$notify({
+                        title: '警告',
+                        message: '任务删除失败',
+                        type: 'warning'
+                    });
+
+                });
+            },
+
+            //暂停任务
+            handlePause: function (index, row) {
+                var url = chooseProject(row.job_GROUP);
+                this.$http.post(url+'/job/pausejob', {
+                    "jobClassName": row.job_NAME,
+                    "jobGroupName": row.job_GROUP
+                }, {emulateJSON: true}).then(function (res) {
+                    this.loadData(this.currentPage, this.pagesize);
+
+                    this.$notify({
+                      title: res.data.statusText,
+                      message: res.data.status,
+                      type: 'success' // warning  info error
+                    });
+
+
+                }, function () {
+                    console.log('failed');
+                    this.$notify({
+                        title: '警告',
+                        message: '任务暂停失败',
+                        type: 'warning'
+                    });
+                });
+            },
+
+            //恢复任务
+            handleResume: function (index, row) {
+                var url = chooseProject(row.job_GROUP);
+                this.$http.post(url+'/job/resumejob', {
+                    "jobClassName": row.job_NAME,
+                    "jobGroupName": row.job_GROUP
+                }, {emulateJSON: true}).then(function (res) {
+                    this.loadData(this.currentPage, this.pagesize);
+                    this.$notify({
+                        title: res.data.statusText,
+                        message: res.data.status,
+                        type: 'success' // warning  info error
+                    });
+                }, function () {
+                    console.log('failed');
+                    this.$notify({
+                        title: '警告',
+                        message: '任务恢复失败',
+                        type: 'warning'
+                    });
+                });
+            },
+
+            //搜索
+            search: function () {
+                this.loadData(this.currentPage, this.pagesize);
+            },
+
+            //弹出对话框
+            handleadd: function () {
+                this.dialogFormVisible = true;
+            },
+
+            //添加
+            add: function () {
+                var url = chooseProject(this.form.jobGroup);
+                this.$http.post(url+'/job/addjob', {
+                    "jobClassName": this.form.jobName,
+                    "jobGroupName": this.form.jobGroup,
+                    "cronExpression": this.form.cronExpression,
+                    "requestRecovery":this.form.requestRecovery,
+                    "storeDurably":this.form.storeDurably,
+                    "description":this.form.description,
+                    "jobData":this.form.jobData
+                }, {emulateJSON: true}).then(function (res) {
+                    this.loadData(this.currentPage, this.pagesize);
+                    this.dialogFormVisible = false;
+                }, function () {
+                    this.$notify({
+                        title: '警告',
+                        message: '任务新增失败',
+                        type: 'warning'
+                    });
+                });
+            },
+
+            //更新
+            handleUpdate: function (index, row) {
+                console.log(row)
+                this.updateFormVisible = true;
+                this.updateform.jobName = row.job_CLASS_NAME;
+                this.updateform.jobGroup = row.job_GROUP;
+            },
+
+            //更新任务
+            update: function () {
+                var url = chooseProject(this.updateform.jobGroup);
+                this.$http.post(url+'/job/reschedulejob',
+                    {
+                        "jobClassName": this.updateform.jobName,
+                        "jobGroupName": this.updateform.jobGroup,
+                        "cronExpression": this.updateform.cronExpression
+                    }, {emulateJSON: true}
+                ).then(function (res) {
+                    this.loadData(this.currentPage, this.pagesize);
+                    this.updateFormVisible = false;
+                    this.$notify({
+                        title: res.data.statusText,
+                        message: res.data.status,
+                        type: 'success' // warning  info error
+                    });
+                }, function () {
+                    console.log('failed');
+                    this.$notify({
+                        title: '警告',
+                        message: '任务更新失败',
+                        type: 'warning'
+                    });
+                });
+
+            },
+
+            //每页显示数据量变更
+            handleSizeChange: function (val) {
+                this.pagesize = val;
+                this.loadData(this.currentPage, this.pagesize);
+            },
+
+            //页码变更
+            handleCurrentChange: function (val) {
+                this.currentPage = val;
+                this.loadData(this.currentPage, this.pagesize);
+            },
+
+        },
+
+
+    });
+
+    /**
+     * 根据不同的项目选择不同的接口请求域名
+     * @param jobGroup
+     */
+    function chooseProject(jobGroup) {
+        var url = "";
+        switch (jobGroup){
+            case "mob-task": url = "http://localhost:20100";
+                break;
+
+            case "mob-eye":  url = "http://localhost:9500";
+                break;
+
+            case "mob-user":  url = "http://localhost:9500";
+                break;
+
+            case "dmp-chinadep": url = "http://dmp.appgo.cn";
+                break;
+
+            case "dmp-wisemedia": url = "http://localhost:9500";
+                break;
+        }
+        return url;
+    }
+
+    //载入数据
+    vue.loadData(vue.currentPage, vue.pagesize);
+</script>
+
+</body>
+</html>

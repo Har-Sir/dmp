@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.uuzu.chinadep.mapper.UserStoreMapper" >
+  <resultMap id="BaseResultMap" type="com.uuzu.chinadep.pojo.UserStore" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="userid" property="userid" jdbcType="VARCHAR" />
+    <result column="storeid" property="storeid" jdbcType="VARCHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="country" property="country" jdbcType="VARCHAR" />
+    <result column="province" property="province" jdbcType="VARCHAR" />
+    <result column="city" property="city" jdbcType="VARCHAR" />
+    <result column="area" property="area" jdbcType="VARCHAR" />
+    <result column="address" property="address" jdbcType="VARCHAR" />
+    <result column="lat" property="lat" jdbcType="VARCHAR" />
+    <result column="lon" property="lon" jdbcType="VARCHAR" />
+    <result column="type" property="type" jdbcType="VARCHAR" />
+    <result column="updatetime" property="updatetime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, userid, storeid, name, country, province, city, area, address, lat, lon, type, 
+    updatetime
+  </sql>
+  <select id="selectCountByUserAndStore" resultMap="BaseResultMap" >
+    select
+    <include refid="Base_Column_List" />
+    from t_user_store
+    where userid = #{userid,jdbcType=VARCHAR}
+    and storeid = #{storeid,jdbcType=VARCHAR}
+  </select>
+  <update id="updateById" parameterType="com.uuzu.chinadep.pojo.UserStore" >
+    update t_user_store
+    set userid = #{userid,jdbcType=VARCHAR},
+    storeid = #{storeid,jdbcType=VARCHAR},
+    name = #{name,jdbcType=VARCHAR},
+    country = #{country,jdbcType=VARCHAR},
+    province = #{province,jdbcType=VARCHAR},
+    city = #{city,jdbcType=VARCHAR},
+    area = #{area,jdbcType=VARCHAR},
+    address = #{address,jdbcType=VARCHAR},
+    lat = #{lat,jdbcType=VARCHAR},
+    lon = #{lon,jdbcType=VARCHAR},
+    type = #{type,jdbcType=VARCHAR},
+    updatetime = #{updatetime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+
+  <select id="selectDedupUser" resultMap="BaseResultMap" >
+    select
+    <include refid="Base_Column_List" />
+    from t_user_store
+    GROUP BY userid
+  </select>
+
+  <select id="selectListByQueryBean" resultMap="BaseResultMap" parameterType="com.uuzu.chinadep.pojo.UserStoreQueryBean">
+    select
+    <include refid="Base_Column_List" />
+    from t_user_store
+    <where>
+      userid = #{userid,jdbcType=VARCHAR}
+      <if test="name != null">
+        and (name like '%${name}%' or address like '%${name}%')
+      </if>
+    </where>
+    order by updatetime desc
+    limit ${startIndex}, ${pageSize}
+  </select>
+  <select id="selectTotalByQueryBean" resultType="java.lang.Integer" parameterType="com.uuzu.chinadep.pojo.UserStoreQueryBean">
+    select count(1)
+    from t_user_store
+    <where>
+      userid = #{userid,jdbcType=VARCHAR}
+      <if test="name != null">
+        and (name like '%${name}%' or address like '%${name}%')
+      </if>
+    </where>
+  </select>
+</mapper>
